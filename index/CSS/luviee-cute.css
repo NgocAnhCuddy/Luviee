@@ -1,0 +1,40 @@
+/* ═══ Luviee — lớp trạng thái dùng chung (HyperOS 3: phẳng, tối giản) ═══
+   Giữ nguyên tên lớp luv-* để JSX hiện có vẫn hoạt động; mọi trang trí
+   (sparkle, glow, vòng gradient, tim nhún) đã được loại bỏ. */
+
+@keyframes luv-ring { to{transform:rotate(360deg)} }
+@keyframes luv-dot  { 0%,100%{opacity:.3} 50%{opacity:1} }
+
+/* ── Hiệu ứng nhấn cho thẻ banner ── */
+.bb-btn-tap.luv-banner{ transition:transform .12s ease, opacity .12s ease !important; }
+.bb-btn-tap.luv-banner:active{ transform:scale(.98) !important; opacity:.9; }
+
+/* ── Trạng thái trống ── */
+.luv-empty{
+  display:flex;flex-direction:column;align-items:center;gap:6px;
+  padding:28px 24px;text-align:center;border-radius:24px;
+}
+.luv-empty-stage{ position:relative;width:88px;height:88px;display:flex;align-items:center;justify-content:center;
+  border-radius:50%;background:var(--hy-fill,#F0F2F5);margin-bottom:6px; }
+.luv-empty-stage > *{ transform:scale(.7); }
+.luv-empty-glow{ display:none !important; }
+.luv-empty-mascot{ position:relative;animation:none;opacity:.85; }
+.luv-spark{ display:none !important; }
+.luv-empty-title{ font-size:15px;font-weight:600;color:var(--hy-text,inherit); }
+.luv-empty-sub{ font-size:13px;color:var(--hy-sub,inherit); }
+
+/* ── Loading ── */
+.luv-loader{ display:flex;flex-direction:column;align-items:center;gap:12px;padding:44px 24px; }
+.luv-loader-mascot{ animation:none;transform:scale(.7);opacity:.85; }
+.luv-dots{ display:flex;gap:6px;align-items:center; }
+.luv-dots span{ width:8px;height:8px;border-radius:50%;display:block;background:#1AB0F5;animation:luv-dot 1s ease-in-out infinite; }
+.luv-dots span:nth-child(2){ animation-delay:.16s; }
+.luv-dots span:nth-child(3){ animation-delay:.32s; }
+
+/* ── Avatar: không còn vòng gradient / tim ── */
+.luv-avatar-ring{ display:none !important; }
+.luv-avatar-heart{ display:none !important; }
+
+@media (prefers-reduced-motion: reduce){
+  .luv-dots span{ animation:none !important; }
+}

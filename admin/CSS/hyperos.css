@@ -1,0 +1,194 @@
+/* ══════════════════════════════════════════════════════════════════
+   HYPEROS.CSS  ·  Giao diện kiểu Xiaomi HyperOS 3
+   - Công tắc: track xanh cyan, núm trắng tròn
+   - Ô chọn (select): icon mũi tên lên/xuống ⌃⌄ như trong Cài đặt HyperOS
+   - Hàng cài đặt: nhóm thẻ bo tròn, đường kẻ mảnh thụt lề, mũi tên ›
+   ══════════════════════════════════════════════════════════════════ */
+:root{
+  --hy-blue:#1AB0F5;
+  --hy-off:rgba(128,128,128,.34);
+  --hy-chev:#9a9aa8;
+}
+body.dark, html.dark{ --hy-off:rgba(255,255,255,.26); --hy-chev:#b9a9b8; }
+
+/* ── Công tắc ── */
+.bb-toggle-track,
+.hy-switch{
+  width:52px; height:32px; border-radius:99px; cursor:pointer; position:relative; flex-shrink:0;
+  background:var(--hy-off) !important; box-shadow:none !important;
+  transition:background .25s cubic-bezier(.3,.7,.4,1);
+  -webkit-tap-highlight-color:transparent;
+}
+.bb-toggle-track.is-on, .hy-switch.is-on{ background:var(--hy-blue) !important; }
+.bb-toggle-thumb,
+.hy-switch > i{
+  position:absolute; top:3px; left:3px !important; width:26px; height:26px; border-radius:50%;
+  background:#fff; box-shadow:0 2px 6px rgba(0,0,0,.22);
+  transition:transform .3s cubic-bezier(.3,1.35,.5,1), width .2s ease;
+  display:block; font-size:0;
+}
+.bb-toggle-thumb svg{ display:none !important; }
+.bb-toggle-track.is-on .bb-toggle-thumb, .hy-switch.is-on > i{ transform:translateX(20px); }
+.bb-toggle-track:active .bb-toggle-thumb, .hy-switch:active > i{ width:31px; }
+.bb-toggle-track.is-on:active .bb-toggle-thumb, .hy-switch.is-on:active > i{ transform:translateX(15px); }
+
+/* ── Ô chọn: mũi tên lên/xuống ── */
+select{
+  -webkit-appearance:none; appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='18' viewBox='0 0 14 18' fill='none' stroke='%239a9aa8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 6.5l4-4 4 4'/%3E%3Cpath d='M3 11.5l4 4 4-4'/%3E%3C/svg%3E") !important;
+  background-repeat:no-repeat !important;
+  background-position:right 10px center !important;
+  background-size:12px 16px !important;
+  padding-right:30px !important;
+}
+
+/* ── Mũi tên › cuối hàng ── */
+.hy-chevron{ display:inline-block; width:8px; height:14px; flex-shrink:0; opacity:.7;
+  background:no-repeat center/contain url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 14' fill='none' stroke='%239a9aa8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1.5 1.5L7 7l-5.5 5.5'/%3E%3C/svg%3E"); }
+
+/* ── Nhóm hàng cài đặt (thẻ bo tròn) ── */
+.hy-group{ border-radius:26px !important; padding:4px 20px !important; border:none !important; }
+.hy-row{ display:flex; align-items:center; gap:14px; padding:14px 0; position:relative; min-height:64px; }
+.hy-row + .hy-row::before{ content:''; position:absolute; top:0; left:34px; right:0; height:1px; background:rgba(128,128,128,.18); }
+.hy-row .hy-title{ font-size:16px; font-weight:600; letter-spacing:.1px; line-height:1.25; font-family:'MiSans','Inter','Nunito',system-ui,sans-serif; }
+.hy-row .hy-sub{ font-size:12.5px; margin-top:2px; line-height:1.35; font-family:'MiSans','Inter','Nunito',system-ui,sans-serif; }
+
+/* ── Nút 3 gạch ── */
+.hy-burger{
+  width:40px; height:40px; border-radius:14px; border:none; padding:0; cursor:pointer; flex-shrink:0;
+  display:inline-flex; align-items:center; justify-content:center;
+  background:rgba(26,176,245,.12); color:#1AB0F5;
+  transition:transform .15s ease, background .2s ease; -webkit-tap-highlight-color:transparent;
+}
+.hy-burger:active{ transform:scale(.92); background:rgba(26,176,245,.22); }
+.hy-burger.dark{ background:rgba(26,176,245,.18); color:#5cc8fa; }
+
+/* ── Ngăn kéo điều hướng ── */
+.hy-menu{ position:fixed; inset:0; z-index:9000; pointer-events:none; visibility:hidden; transition:visibility 0s linear .3s; }
+.hy-menu.open{ pointer-events:auto; visibility:visible; transition-delay:0s; }
+.hy-scrim{ position:absolute; inset:0; background:rgba(8,20,28,.46); opacity:0; transition:opacity .28s ease;
+  -webkit-backdrop-filter:blur(2px); backdrop-filter:blur(2px); }
+.hy-menu.open .hy-scrim{ opacity:1; }
+.hy-drawer{
+  position:absolute; top:0; bottom:0; left:0; width:min(310px,84vw);
+  display:flex; flex-direction:column;
+  background:#f7fbfe; color:#14252f;
+  border-radius:0 28px 28px 0; box-shadow:12px 0 48px rgba(10,40,60,.22);
+  transform:translateX(-102%); transition:transform .32s cubic-bezier(.22,.9,.3,1);
+  padding:env(safe-area-inset-top,0) 0 env(safe-area-inset-bottom,0);
+  font-family:'MiSans','Inter','Nunito',system-ui,sans-serif;
+}
+.hy-menu.open .hy-drawer{ transform:translateX(0); }
+.hy-menu.dark .hy-drawer{ background:#10181d; color:#e4f2f9; box-shadow:12px 0 48px rgba(0,0,0,.55); }
+.hy-drawer-head{ display:flex; align-items:center; justify-content:space-between; padding:22px 20px 12px 24px; }
+.hy-drawer-title{ font-size:24px; font-weight:800; letter-spacing:.2px; }
+.hy-drawer-close{ width:36px; height:36px; border-radius:50%; border:none; cursor:pointer; color:inherit; opacity:.7;
+  background:rgba(128,128,128,.14); display:inline-flex; align-items:center; justify-content:center; }
+.hy-drawer-list{ display:flex; flex-direction:column; gap:4px; padding:8px 12px; overflow-y:auto; flex:1; }
+.hy-drawer-item{
+  display:flex; align-items:center; gap:14px; width:100%; min-height:54px; padding:0 14px;
+  border:none; border-radius:18px; background:transparent; color:inherit; cursor:pointer; text-align:left;
+  font-size:16px; font-weight:600; font-family:inherit; transition:background .15s ease;
+}
+.hy-drawer-item:active{ background:rgba(26,176,245,.14); }
+.hy-drawer-item .hy-drawer-ico{ display:inline-flex; width:24px; justify-content:center; color:#7b8f9b; }
+.hy-drawer-item .hy-drawer-label{ flex:1; min-width:0; }
+.hy-drawer-item .hy-chevron{ opacity:.35; }
+.hy-drawer-item.active{ background:rgba(26,176,245,.14); color:#0e8fd0; }
+.hy-menu.dark .hy-drawer-item.active{ background:rgba(26,176,245,.2); color:#5cc8fa; }
+.hy-drawer-item.active .hy-drawer-ico{ color:#1AB0F5; }
+.hy-drawer-item.active .hy-chevron{ opacity:.8; }
+.hy-drawer-foot{ padding:12px 24px 20px; font-size:12px; opacity:.6; }
+
+/* ── Font hệ thống (trên máy Xiaomi = MiSans) thay cho Baloo/Nunito/Satisfy ── */
+:root{ --hy-font:'MiSans',system-ui,-apple-system,'Roboto','Segoe UI',sans-serif; }
+body, button, input, select, textarea,
+#root :not(svg):not(svg *):not(code):not(pre):not(kbd):not(samp),
+#admin-root :not(svg):not(svg *):not(code):not(pre):not(kbd):not(samp){
+  font-family:var(--hy-font) !important;
+}
+
+/* ══ HyperOS: chuyển động nhẹ, bỏ trang trí kawaii ══ */
+[style*="bb-float"],[style*="bb-blink"],[style*="bb-bounce"],[style*="bb-sparkle"]{ animation:none !important; }
+.luv-spark,.luv-dots{ display:none !important; }
+.bb-sticker:hover{ transform:none !important; }
+::selection{ background:rgba(26,176,245,.28); }
+input:focus, textarea:focus, select:focus{ outline:2px solid rgba(26,176,245,.55); outline-offset:0; }
+*{ -webkit-tap-highlight-color:transparent; }
+@media (prefers-reduced-motion:no-preference){
+  button{ transition:transform .12s ease, opacity .12s ease; }
+  button:active{ opacity:.86; }
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   HYPEROS 3 · BỘ THÀNH PHẦN DÙNG CHUNG (utility classes)
+   Dùng thay cho inline-style kiểu "kawaii" khi dựng lại màn hình.
+   ══════════════════════════════════════════════════════════════════ */
+:root{
+  --hy-card:#FFFFFF; --hy-fill:#F0F2F5; --hy-text:#1A1C1E; --hy-sub:#8A8F98; --hy-line:rgba(128,128,128,.18);
+  --hy-green:#34C759; --hy-orange:#FF9500; --hy-red:#FF3B30; --hy-teal:#30B0C7; --hy-indigo:#5B6CFF; --hy-gray:#8E8E93;
+}
+body.dark, html.dark{
+  --hy-card:#1E2024; --hy-fill:#2A2D32; --hy-text:#F2F3F5; --hy-sub:#8E9299; --hy-line:rgba(255,255,255,.1);
+}
+
+.hy-page-title{ font-size:30px; font-weight:700; letter-spacing:-.3px; line-height:1.15; margin:10px 6px 4px; color:var(--hy-text); }
+.hy-page-sub{ font-size:14px; color:var(--hy-sub); margin:0 6px 16px; line-height:1.4; }
+.hy-section-label{ font-size:13px; font-weight:600; color:var(--hy-sub); margin:20px 10px 8px; letter-spacing:.2px; }
+
+.hy-card{ background:var(--hy-card); color:var(--hy-text); border-radius:26px; padding:18px 20px; border:none; box-shadow:none; }
+.hy-card.flush{ padding:0; overflow:hidden; }
+.hy-card.tint{ background:rgba(26,176,245,.12); }
+.hy-value{ color:var(--hy-sub); font-size:14px; font-weight:500; }
+
+/* Nút */
+.hy-btn{ height:48px; padding:0 24px; border:0; border-radius:24px; background:#1AB0F5; color:#fff; cursor:pointer;
+  font-size:15px; font-weight:600; display:inline-flex; align-items:center; justify-content:center; gap:8px; }
+.hy-btn.tonal{ background:rgba(26,176,245,.14); color:#0E8FD0; }
+body.dark .hy-btn.tonal{ color:#5CC8FA; background:rgba(26,176,245,.2); }
+.hy-btn.plain{ background:var(--hy-fill); color:var(--hy-text); }
+.hy-btn.danger{ background:rgba(255,59,48,.12); color:#E5362C; }
+.hy-btn.block{ width:100%; }
+.hy-btn.sm{ height:36px; padding:0 16px; font-size:13px; border-radius:18px; }
+.hy-btn.icon{ width:44px; padding:0; border-radius:50%; }
+.hy-btn:disabled{ opacity:.45; cursor:not-allowed; }
+
+/* Chip */
+.hy-chip{ display:inline-flex; align-items:center; gap:6px; height:30px; padding:0 12px; border-radius:15px; border:0;
+  background:var(--hy-fill); color:var(--hy-text); font-size:13px; font-weight:600; cursor:pointer; white-space:nowrap; }
+.hy-chip.on{ background:rgba(26,176,245,.16); color:#0E8FD0; }
+body.dark .hy-chip.on{ color:#5CC8FA; }
+
+/* Ô nhập */
+.hy-input{ width:100%; height:48px; padding:0 16px; border:0; border-radius:16px; background:var(--hy-fill); color:var(--hy-text);
+  font-size:15px; font-family:inherit; box-sizing:border-box; }
+textarea.hy-input{ height:auto; min-height:96px; padding:12px 16px; line-height:1.5; resize:vertical; }
+.hy-input::placeholder{ color:var(--hy-sub); }
+
+/* Phân đoạn (segmented control) */
+.hy-seg{ display:flex; gap:2px; padding:3px; border-radius:16px; background:var(--hy-fill); }
+.hy-seg > button{ flex:1; height:34px; border:0; border-radius:13px; background:transparent; color:var(--hy-sub);
+  font-size:13px; font-weight:600; cursor:pointer; font-family:inherit; transition:background .2s, color .2s; }
+.hy-seg > button.on{ background:var(--hy-card); color:#1AB0F5; box-shadow:0 1px 3px rgba(0,0,0,.1); }
+
+/* Icon vuông bo (như icon Cài đặt HyperOS) */
+.hy-ico{ width:36px; height:36px; border-radius:11px; flex-shrink:0; display:inline-flex; align-items:center; justify-content:center; color:#fff; background:#1AB0F5; }
+.hy-ico.c-green{ background:var(--hy-green); } .hy-ico.c-orange{ background:var(--hy-orange); } .hy-ico.c-red{ background:var(--hy-red); }
+.hy-ico.c-teal{ background:var(--hy-teal); } .hy-ico.c-indigo{ background:var(--hy-indigo); } .hy-ico.c-gray{ background:var(--hy-gray); }
+
+/* Thanh tiến trình */
+.hy-progress{ height:6px; border-radius:3px; background:rgba(128,128,128,.2); overflow:hidden; }
+.hy-progress > i{ display:block; height:100%; border-radius:3px; background:#1AB0F5; transition:width .4s ease; }
+.hy-progress.green > i{ background:var(--hy-green); } .hy-progress.orange > i{ background:var(--hy-orange); } .hy-progress.red > i{ background:var(--hy-red); }
+
+/* Bottom sheet */
+.hy-sheet{ background:var(--hy-card); color:var(--hy-text); border-radius:28px 28px 0 0; padding:22px 20px 28px; position:relative; }
+.hy-sheet::before{ content:''; position:absolute; top:8px; left:50%; width:36px; height:4px; margin-left:-18px; border-radius:2px; background:var(--hy-line); }
+
+/* Hàng chọn (đáp án quiz, danh sách chọn) */
+.hy-option{ display:flex; align-items:center; gap:12px; width:100%; min-height:56px; padding:12px 16px; border:2px solid transparent;
+  border-radius:20px; background:var(--hy-card); color:var(--hy-text); font-size:15px; font-weight:500; text-align:left; cursor:pointer; font-family:inherit; }
+.hy-option.on{ border-color:#1AB0F5; background:rgba(26,176,245,.1); }
+.hy-option.correct{ border-color:var(--hy-green); background:rgba(52,199,89,.12); }
+.hy-option.wrong{ border-color:var(--hy-red); background:rgba(255,59,48,.1); }
+.hy-row.has-ico + .hy-row::before{ left:50px; }
