@@ -174,7 +174,7 @@ import React from 'react';
             </div>
 
             <div className="hy-value" style={{ textAlign: 'center', marginTop: 16, fontSize: 12.5 }}>
-              Tài khoản do giáo viên cấp phát
+              
             </div>
           </div>
         </div>
