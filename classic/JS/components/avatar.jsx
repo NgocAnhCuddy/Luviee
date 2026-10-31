@@ -71,12 +71,33 @@ import { createPortal } from 'react-dom';
       return r && typeof r === 'object' && 'result' in r ? r.result : r;
     }
 
-    /* Cờ "đã up avatar": chỉ có key Redis khi user thật sự upload → không dò ảnh trong storage */
+    /* Cờ "đã up avatar": key Redis avatar:user:<id>.
+       Nếu key MẤT (admin up bằng bản cũ từng DEL key, Redis bị xóa/hết hạn…) nhưng ảnh vẫn nằm trong
+       storage → dò 1 lần avatars/<id>.jpg, nếu có thì dựng lại cờ. Kết quả "không có ảnh" được nhớ 12 giờ
+       để không dò lại mỗi lần mở trang. */
     const _flagCache = new Map();
+    const _fallbackIds = new Set();
+    const NEG_MS = 12 * 3600 * 1000;
     function getAvatarFlag(uid) {
       if (!_flagCache.has(uid)) {
         _flagCache.set(uid, Promise.resolve(window.upstashCmd('GET', 'avatar:user:' + uid))
-          .then(r => { const v = upstashVal(r); return typeof v === 'string' && v ? v : null; })
+          .then(async r => {
+            const v = upstashVal(r);
+            if (typeof v === 'string' && v) { _fallbackIds.delete(uid); return v; }
+            if (r && typeof r === 'object' && r.error) return null;
+            try {
+              const neg = Number(localStorage.getItem('ls_avatar_neg_' + uid) || 0);
+              if (neg && Date.now() - neg < NEG_MS) return null;
+            } catch (e) { /* ignore */ }
+            const url = publicUrl(mainPath(uid)) + '?t=' + Date.now();
+            if (!(await probeImage(url))) {
+              try { localStorage.setItem('ls_avatar_neg_' + uid, String(Date.now())); } catch (e) { /* ignore */ }
+              return null;
+            }
+            _fallbackIds.add(uid);
+            try { await window.upstashCmd('SET', 'avatar:user:' + uid, url); _fallbackIds.delete(uid); } catch (e) { /* ignore */ }
+            return url;
+          })
           .catch(() => { _flagCache.delete(uid); return null; }));
       }
       return _flagCache.get(uid);
@@ -194,6 +215,7 @@ import { createPortal } from 'react-dom';
           if (!d || d.userId !== userId || !mountedRef.current) return;
           const cur = avatarUrlRef.current || null;
           if ((d.url || null) === cur) return;
+          if (!d.url && _fallbackIds.has(userId)) return; // ảnh vừa dò lại từ storage, cờ Redis chưa kịp ghi
           _flagCache.delete(userId);
           if (d.url) writeAvatarCache(userId, d.url); else { try { localStorage.removeItem('ls_avatar_' + userId); } catch (e) { /* ignore */ } }
           setAvatarUrl(d.url || null);
@@ -304,6 +326,7 @@ import { createPortal } from 'react-dom';
           .upload(mainPath(uid), blob, { contentType: 'image/jpeg', upsert: true });
         if (error) throw error;
         const url = publicUrl(mainPath(uid)) + '?t=' + Date.now();
+        try { localStorage.removeItem('ls_avatar_neg_' + uid); } catch (e) { /* ignore */ }
         await window.upstashCmd('SET', 'avatar:user:' + uid, url);
         await window.upstashCmd('SET', 'avatar:active:' + uid, String(slot)).catch(() => {});
         return url;
@@ -478,7 +501,7 @@ import { createPortal } from 'react-dom';
         <div style={{
           ...base, background: bg, position: 'relative',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: size * 0.38, fontWeight: 900, color: '#fff', letterSpacing: '-1px',
+          fontSize: size * 0.38, fontWeight:700, color: '#fff', letterSpacing: '-1px',
           fontFamily: "'Baloo 2',cursive",
         }}>
           {initials}
@@ -637,26 +660,26 @@ import { createPortal } from 'react-dom';
         }
       };
 
-      const txt = dark ? '#f5f3ff' : '#3b0764';
-      const sub = dark ? 'rgba(245,243,255,0.6)' : 'rgba(59,7,100,0.6)';
+      const txt = dark ? '#f3f8ff' : '#072f64';
+      const sub = dark ? 'rgba(243,248,255,0.6)' : 'rgba(7,47,100,0.6)';
 
       return createPortal(
         <div role="dialog" aria-modal="true" aria-label="Cắt ảnh đại diện"
           onClick={(e) => { if (e.target === e.currentTarget && !busy) onCancel(); }}
           style={{
             position: 'fixed', inset: 0, zIndex: 10000,
-            background: 'rgba(15,5,30,0.62)', backdropFilter: 'blur(6px)',
+            background: 'rgba(9,16,26,0.62)', backdropFilter: 'blur(6px)',
             WebkitBackdropFilter: 'blur(6px)',
             display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
           }}>
           <div style={{
             width: 'min(100%, 340px)', borderRadius: 24, padding: '18px 18px 16px',
-            background: dark ? '#1e1830' : '#ffffff',
+            background: dark ? '#182230' : '#ffffff',
             boxShadow: '0 20px 60px rgba(0,0,0,0.4)',
             display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14,
             fontFamily: 'Nunito,sans-serif', animation: 'bb-pop .2s ease both',
           }}>
-            <div style={{ fontWeight: 900, fontSize: 16, color: txt }}>Cắt ảnh đại diện</div>
+            <div style={{ fontWeight:700, fontSize: 16, color: txt }}>Cắt ảnh đại diện</div>
 
             <div
               onPointerDown={onPointerDown} onPointerMove={onPointerMove}
@@ -665,7 +688,7 @@ import { createPortal } from 'react-dom';
               style={{
                 position: 'relative', width: STAGE, height: STAGE, borderRadius: 16,
                 overflow: 'hidden', touchAction: 'none', cursor: ready ? 'grab' : 'default',
-                background: dark ? '#0f0a1d' : '#f3e8ff', userSelect: 'none',
+                background: dark ? '#0a121d' : '#e9f2fe', userSelect: 'none',
               }}>
               <canvas ref={canvasRef} width={PREV_PX} height={PREV_PX}
                 style={{ width: STAGE, height: STAGE, display: 'block', opacity: ready ? 1 : 0 }} />
@@ -690,15 +713,15 @@ import { createPortal } from 'react-dom';
             </div>
 
             <div style={{ width: STAGE, display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span aria-hidden="true" style={{ color: sub, fontWeight: 900, fontSize: 16, lineHeight: 1 }}>−</span>
+              <span aria-hidden="true" style={{ color: sub, fontWeight:700, fontSize: 16, lineHeight: 1 }}>−</span>
               <input type="range" min="1" max={MAX_Z} step="0.01" value={zoom}
                 disabled={!ready || busy} aria-label="Thu phóng"
                 onChange={(e) => setZ(parseFloat(e.target.value))}
-                style={{ flex: 1, accentColor: '#a855f7' }} />
-              <span aria-hidden="true" style={{ color: sub, fontWeight: 900, fontSize: 16, lineHeight: 1 }}>+</span>
+                style={{ flex: 1, accentColor: '#1AB0F5' }} />
+              <span aria-hidden="true" style={{ color: sub, fontWeight:700, fontSize: 16, lineHeight: 1 }}>+</span>
             </div>
 
-            <div style={{ fontSize: 12, fontWeight: 600, color: err ? '#ef4444' : sub, textAlign: 'center', minHeight: 16 }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: err ? '#FF3B30' : sub, textAlign: 'center', minHeight: 16 }}>
               {err || 'Kéo để di chuyển, chụm hoặc kéo thanh trượt để phóng to'}
             </div>
 
@@ -706,17 +729,17 @@ import { createPortal } from 'react-dom';
               <button type="button" className="bb-btn-tap" onClick={onCancel} disabled={busy}
                 style={{
                   flex: 1, padding: '10px 0', borderRadius: 99, cursor: 'pointer',
-                  border: '1.5px solid ' + (dark ? 'rgba(255,255,255,0.18)' : 'rgba(168,85,247,0.35)'),
-                  background: 'transparent', color: txt, fontWeight: 800, fontSize: 13,
+                  border: '1px solid ' + (dark ? 'rgba(255,255,255,0.18)' : 'rgba(26,176,245,0.35)'),
+                  background: 'transparent', color: txt, fontWeight:600, fontSize: 13,
                   fontFamily: 'Nunito,sans-serif',
                 }}>Hủy</button>
               <button type="button" className="bb-btn-tap" onClick={confirm} disabled={!ready || busy}
                 style={{
                   flex: 1, padding: '10px 0', borderRadius: 99, border: 'none',
                   cursor: ready && !busy ? 'pointer' : 'default',
-                  background: 'linear-gradient(135deg,#f472b6,#a855f7)', color: '#fff',
-                  fontWeight: 800, fontSize: 13, fontFamily: 'Nunito,sans-serif',
-                  boxShadow: '0 3px 12px rgba(244,114,182,0.4)',
+                  background: '#1AB0F5', color: '#fff',
+                  fontWeight:600, fontSize: 13, fontFamily: 'Nunito,sans-serif',
+                  boxShadow: '0 3px 12px rgba(0,0,0,0.08)',
                   opacity: !ready || busy ? 0.6 : 1,
                 }}>{busy ? 'Đang xử lý…' : 'Dùng ảnh này'}</button>
             </div>
@@ -922,9 +945,9 @@ import { createPortal } from 'react-dom';
               <div style={{
                 position: 'absolute', bottom: 2, right: 2,
                 width: 26, height: 26, borderRadius: '50%',
-                background: 'linear-gradient(135deg,#f472b6,#a855f7)',
+                background: '#1AB0F5',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                boxShadow: '0 2px 8px rgba(244,114,182,0.5)',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
                 border: '2px solid ' + C.card,
               }}>
                 <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="#fff"
@@ -951,18 +974,18 @@ import { createPortal } from 'react-dom';
                     style={{
                       width: 46, height: 46, padding: 0, borderRadius: '50%',
                       overflow: 'hidden', cursor: busy ? 'default' : 'pointer',
-                      background: sl.url ? 'transparent' : 'rgba(168,85,247,0.08)',
+                      background: sl.url ? 'transparent' : 'rgba(26,176,245,0.08)',
                       border: isActive
-                        ? '2.5px solid #a855f7'
-                        : sl.url ? '2px solid rgba(168,85,247,0.25)' : '2px dashed rgba(168,85,247,0.45)',
-                      boxShadow: isActive ? '0 0 0 3px rgba(168,85,247,0.22)' : 'none',
+                        ? '2.5px solid #1AB0F5'
+                        : sl.url ? '2px solid rgba(26,176,245,0.25)' : '2px dashed rgba(26,176,245,0.45)',
+                      boxShadow: isActive ? '0 0 0 3px rgba(26,176,245,0.22)' : 'none',
                       opacity: busy ? 0.6 : 1, transition: 'box-shadow .2s, border-color .2s',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                     }}>
                     {sl.url
                       ? <img src={sl.url} alt="" draggable={false}
                           style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                      : <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#a855f7"
+                      : <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#1AB0F5"
                           strokeWidth="2.5" strokeLinecap="round">
                           <line x1="12" y1="5" x2="12" y2="19" />
                           <line x1="5" y1="12" x2="19" y2="12" />
@@ -978,9 +1001,9 @@ import { createPortal } from 'react-dom';
               onClick={() => openPicker(defaultSlot())}
               style={{
                 padding: '7px 16px', borderRadius: 99, border: 'none', cursor: 'pointer',
-                background: 'linear-gradient(135deg,#f472b6,#a855f7)',
-                color: '#fff', fontWeight: 800, fontSize: 12,
-                boxShadow: '0 3px 12px rgba(244,114,182,0.4)',
+                background: '#1AB0F5',
+                color: '#fff', fontWeight:600, fontSize: 12,
+                boxShadow: '0 3px 12px rgba(0,0,0,0.08)',
                 fontFamily: 'Nunito,sans-serif', opacity: busy ? 0.6 : 1,
                 display: 'flex', alignItems: 'center', gap: 5,
               }}>
@@ -997,13 +1020,13 @@ import { createPortal } from 'react-dom';
               <button className="bb-btn-tap" onClick={handleRemove}
                 style={{
                   padding: '7px 14px', borderRadius: 99,
-                  border: '1.5px solid rgba(239,68,68,0.4)',
-                  background: 'rgba(239,68,68,0.08)',
-                  color: '#ef4444', fontWeight: 700, fontSize: 12,
+                  border: '1px solid rgba(255,59,48,0.4)',
+                  background: 'rgba(255,59,48,0.08)',
+                  color: '#FF3B30', fontWeight: 700, fontSize: 12,
                   cursor: 'pointer', fontFamily: 'Nunito,sans-serif',
                   display: 'flex', alignItems: 'center', gap: 5,
                 }}>
-                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="#ef4444"
+                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="#FF3B30"
                   strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="3 6 5 6 21 6" />
                   <path d="M19 6l-1 14H6L5 6" />
@@ -1015,7 +1038,7 @@ import { createPortal } from 'react-dom';
             )}
 
             {removing && (
-              <span style={{ fontSize: 11, color: '#ef4444', fontFamily: 'Nunito,sans-serif' }}>
+              <span style={{ fontSize: 11, color: '#FF3B30', fontFamily: 'Nunito,sans-serif' }}>
                 Đang xóa…
               </span>
             )}
@@ -1024,9 +1047,9 @@ import { createPortal } from 'react-dom';
           {msg && (
             <div style={{
               fontSize: 12, fontWeight: 700, padding: '5px 14px', borderRadius: 99,
-              background: msg.ok ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)',
-              color: msg.ok ? '#10b981' : '#ef4444',
-              border: '1px solid ' + (msg.ok ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)'),
+              background: msg.ok ? 'rgba(52,199,89,0.12)' : 'rgba(255,59,48,0.12)',
+              color: msg.ok ? '#34C759' : '#FF3B30',
+              border: '1px solid ' + (msg.ok ? 'rgba(52,199,89,0.3)' : 'rgba(255,59,48,0.3)'),
               animation: 'bb-pop .2s ease both',
             }}>{msg.text}</div>
           )}
