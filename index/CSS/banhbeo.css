@@ -1,0 +1,84 @@
+/* ══════════════════════════════════════════════════════════════════
+   BANHBEO.CSS · Chủ đề "Bánh bèo" — hồng pastel, bo tròn, mềm mại
+   Chỉ có tác dụng khi <html class="theme-bb"> (bật ở Cài đặt → Màu sắc).
+   Màu xanh cứng trong JS được đổi sang hồng bởi index/JS/theme.js.
+   ══════════════════════════════════════════════════════════════════ */
+html.theme-bb{
+  --ls-ac:#FF6FA8; --ls-ac-rgb:255,111,168; --hy-blue:#FF6FA8;
+  --hy-card:#FFFFFF; --hy-fill:#FFEEF5; --hy-text:#4A2B3B; --hy-sub:#B07C95; --hy-line:rgba(255,111,168,.2);
+  --hy-green:#4FCB98; --hy-orange:#FFA463; --hy-red:#FF5C7A; --hy-teal:#6FD0C2; --hy-indigo:#B58CFF; --hy-gray:#C9A9BA;
+  --hy-off:rgba(214,160,185,.5); --hy-chev:#D79BB6;
+  --bb-rose:#FF6FA8; --bb-rose2:#FF8FBD; --bb-blush:#FFE3EF; --bb-ink:#D6418A;
+}
+html.theme-bb.dark, html.theme-bb body.dark{
+  --hy-card:#2B1E2E; --hy-fill:#3A2A3F; --hy-text:#FFEAF4; --hy-sub:#CBA3BA; --hy-line:rgba(255,160,200,.18);
+  --hy-off:#6E5476; --hy-chev:#C99BB6; --bb-blush:#3A2540; --bb-ink:#FFA6CB;
+}
+html.theme-bb{ color-scheme:light; }
+html.theme-bb.dark{ color-scheme:dark; }
+
+/* Phông mềm (Baloo 2 cho tiêu đề, Nunito cho nội dung) — thắng quy tắc MiSans của hyperos.css */
+html.theme-bb body, html.theme-bb button, html.theme-bb input, html.theme-bb select, html.theme-bb textarea,
+html.theme-bb #root :not(svg):not(svg *):not(code):not(pre):not(kbd):not(samp){
+  font-family:'Nunito','Baloo 2',system-ui,sans-serif !important;
+}
+html.theme-bb .hy-page-title, html.theme-bb .bb-section-title, html.theme-bb .bb-hero-name,
+html.theme-bb .hy-drawer-title, html.theme-bb .ls-title-hero{
+  font-family:'Baloo 2','Nunito',system-ui,sans-serif !important; letter-spacing:.2px;
+}
+html.theme-bb .hy-page-title{ color:var(--bb-ink); }
+
+/* Thẻ: bo mềm, viền hồng, bóng hồng */
+html.theme-bb .hy-card, html.theme-bb .hy-sheet{
+  border-radius:30px !important; border:1.5px solid var(--hy-line) !important;
+  box-shadow:0 6px 22px rgba(255,111,168,.14), 0 1px 2px rgba(255,111,168,.08) !important;
+}
+html.theme-bb.dark .hy-card, html.theme-bb.dark .hy-sheet{ box-shadow:0 6px 22px rgba(0,0,0,.4) !important; }
+html.theme-bb .hy-group{ border-radius:30px !important; }
+html.theme-bb .hy-ico{ border-radius:15px; box-shadow:0 3px 8px rgba(255,111,168,.25); }
+html.theme-bb .hy-ico.c-green{ background:linear-gradient(135deg,#6EDDB0,#3FC38C); }
+html.theme-bb .hy-ico.c-orange{ background:linear-gradient(135deg,#FFBE85,#FF9A52); }
+html.theme-bb .hy-ico.c-teal{ background:linear-gradient(135deg,#8CE0D4,#52C3B3); }
+html.theme-bb .hy-ico.c-indigo{ background:linear-gradient(135deg,#C9A6FF,#A27CF2); }
+html.theme-bb .hy-ico:not([class*="c-"]){ background:linear-gradient(135deg,#FF9CC4,#FF6FA8); }
+
+/* Nút: gradient hồng, bóng phát sáng */
+html.theme-bb .hy-btn:not(.tonal):not(.plain):not(.danger){
+  background:linear-gradient(135deg,#FF9CC4,#FF6FA8); box-shadow:0 6px 16px rgba(255,111,168,.38); border-radius:26px;
+}
+html.theme-bb .hy-btn.tonal{ background:var(--bb-blush); color:var(--bb-ink); }
+html.theme-bb .hy-chip{ border-radius:18px; }
+html.theme-bb .hy-chip.on{ background:linear-gradient(135deg,#FF9CC4,#FF6FA8); color:#fff; box-shadow:0 3px 10px rgba(255,111,168,.35); }
+html.theme-bb .hy-seg{ border-radius:20px; }
+html.theme-bb .hy-seg > button.on{ color:var(--bb-ink); }
+html.theme-bb .hy-progress > i{ background:linear-gradient(90deg,#FFA9CD,#FF6FA8); }
+html.theme-bb .hy-option.on{ background:rgba(255,111,168,.12); }
+html.theme-bb .hy-option{ border-radius:24px; }
+html.theme-bb.dark .hy-chip{ background:#46304C; color:#FFEAF4; }
+html.theme-bb.dark .hy-chip.on{ color:#fff; }
+html.theme-bb.dark .bb-toggle-track, html.theme-bb.dark .hy-switch{ background:#6E5476 !important; }
+html.theme-bb .bb-toggle-track.is-on, html.theme-bb .hy-switch.is-on{ background:linear-gradient(90deg,#FFA3C8,#FF6FA8) !important; }
+
+/* Logo: nơ nhỏ phía trước chữ */
+html.theme-bb .logo-learnsy::before{
+  content:''; display:inline-block; width:20px; height:20px; margin-right:5px; vertical-align:-4px;
+  background:no-repeat center/contain url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 12c-3-5-8-6-9-3s2 7 9 3zM12 12c3-5 8-6 9-3s-2 7-9 3z' fill='%23FF6FA8'/%3E%3Ccircle cx='12' cy='12' r='2.2' fill='%23D6418A'/%3E%3C/svg%3E");
+}
+html.theme-bb .logo-learnsy{ background:linear-gradient(120deg,#FF8FBD,#FF5C9A,#C084FC,#FF8FBD); -webkit-background-clip:text; background-clip:text; }
+
+/* Họa tiết SVG bay nhẹ phía sau nội dung */
+#ls-bb-decor{ position:fixed; inset:0; pointer-events:none; z-index:1; overflow:hidden; display:none; }
+html.theme-bb #ls-bb-decor{ display:block; }
+#ls-bb-decor .bb-sprite{ position:absolute; opacity:.4; animation:bb-sprite-float ease-in-out infinite; will-change:transform; }
+html.theme-bb.dark #ls-bb-decor .bb-sprite{ opacity:.28; }
+@keyframes bb-sprite-float{
+  0%,100%{ transform:translateY(0) rotate(-6deg) scale(1); }
+  50%{ transform:translateY(-14px) rotate(8deg) scale(1.08); }
+}
+@media (prefers-reduced-motion:reduce){ #ls-bb-decor .bb-sprite{ animation:none; } }
+@media (max-width:420px){ #ls-bb-decor .bb-sprite:nth-child(n+7){ display:none; } }
+
+/* Thẻ chọn chủ đề (Cài đặt → Màu sắc) */
+.ls-theme-opt{ flex:1; text-align:left; cursor:pointer; border-radius:18px; padding:10px; border:2px solid transparent; background:var(--hy-fill); color:var(--hy-text); font-family:inherit; }
+.ls-theme-opt.on{ border-color:var(--ls-ac,#1AB0F5); }
+.ls-theme-sw{ height:46px; border-radius:12px; margin-bottom:8px; display:flex; align-items:center; justify-content:center; gap:6px; }

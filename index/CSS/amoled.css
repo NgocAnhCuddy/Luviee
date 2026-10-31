@@ -1,0 +1,54 @@
+/* ══════════════════════════════════════════════════════════════════
+   AMOLED.CSS · Tối ưu màn hình OLED/AMOLED (chỉ chế độ tối)
+   Bật mặc định; tắt ở Cài đặt → Màu sắc → "Nền đen thuần (AMOLED)".
+   • Nền #000: điểm ảnh tắt hẳn → tiết kiệm pin + đen sâu.
+   • Thẻ gần đen + viền mảnh thay cho bóng đổ (bóng không thấy được trên nền đen).
+   • Bỏ backdrop-filter (làm mờ kính tốn GPU và biến nền đen thành xám đục).
+   • Chữ trắng ngà #E9EAEC thay vì trắng tinh (đỡ lóa, đỡ "loang" ở viền chữ).
+   • Họa tiết trang trí mờ và đứng yên (không bật sáng điểm ảnh liên tục).
+   Màu inline trong JS được đổi bởi index/JS/theme.js.
+   ══════════════════════════════════════════════════════════════════ */
+html.amoled.dark, html.amoled.dark body, html.amoled.dark #root{ background-color:#000; }
+html.amoled.dark, html.amoled body.dark{
+  --hy-card:#0B0B0D; --hy-fill:#17181B; --hy-text:#E9EAEC; --hy-sub:#8E9299;
+  --hy-line:rgba(255,255,255,.09); --hy-off:#3A3D43; --hy-chev:#7D828A;
+}
+html.amoled.dark.theme-bb, html.amoled.theme-bb body.dark{
+  --hy-card:#12080E; --hy-fill:#22121B; --hy-text:#FFEAF4; --hy-sub:#B88AA3;
+  --hy-line:rgba(255,140,190,.16); --hy-off:#4A3040; --bb-blush:#2A1420;
+}
+
+/* Thẻ: viền mảnh thay bóng */
+html.amoled.dark .hy-card, html.amoled.dark .hy-sheet{ box-shadow:none !important; border:1px solid var(--hy-line) !important; }
+html.amoled.dark .hy-ico{ box-shadow:none; }
+
+/* Không làm mờ kính */
+html.amoled.dark *, html.amoled.dark *::before, html.amoled.dark *::after{
+  -webkit-backdrop-filter:none !important; backdrop-filter:none !important;
+}
+html.amoled.dark .hy-scrim{ background:rgba(0,0,0,.72); }
+
+/* Ngăn kéo, chip, nút phụ, ô nhập, phân đoạn */
+html.amoled.dark .hy-menu.dark .hy-drawer, html.amoled.dark .hy-menu .hy-drawer{ background:#000; box-shadow:12px 0 0 rgba(0,0,0,.6); border-right:1px solid var(--hy-line); }
+html.amoled.dark .hy-chip{ background:#1A1B1F; color:#E6E9EE; }
+html.amoled.dark .hy-chip.on{ background:rgba(26,176,245,.24); color:#7FD6FF; }
+html.amoled.dark .hy-btn.plain{ background:#1A1B1F; color:#F2F3F5; }
+html.amoled.dark .hy-seg{ background:#141518; }
+html.amoled.dark .hy-seg > button.on{ background:#26282D; }
+html.amoled.dark .hy-option{ background:#0E0F11; }
+html.amoled.dark .hy-input{ background:#141518; }
+html.amoled.dark .bb-toggle-track, html.amoled.dark .hy-switch{ background:#3A3D43 !important; }
+html.amoled.dark .bb-toggle-track.is-on, html.amoled.dark .hy-switch.is-on{ background:var(--hy-blue) !important; }
+html.amoled.dark .bb-toggle-thumb, html.amoled.dark .hy-switch > i{ background:#F2F3F5 !important; }
+html.amoled.dark.theme-bb .hy-chip{ background:#22121B; color:#FFEAF4; }
+html.amoled.dark.theme-bb .hy-chip.on{ background:linear-gradient(135deg,#FF9CC4,#FF6FA8); color:#fff; }
+html.amoled.dark.theme-bb .hy-btn.plain, html.amoled.dark.theme-bb .hy-option{ background:#1A0D14; }
+html.amoled.dark.theme-bb .bb-toggle-track, html.amoled.dark.theme-bb .hy-switch{ background:#4A3040 !important; }
+html.amoled.dark.theme-bb .bb-toggle-track.is-on, html.amoled.dark.theme-bb .hy-switch.is-on{ background:linear-gradient(90deg,#FFA3C8,#FF6FA8) !important; }
+
+/* Skeleton / thanh tiến trình trên nền đen */
+html.amoled.dark .hy-progress{ background:rgba(255,255,255,.12); }
+html.amoled.dark .skeleton{ background:#141518 !important; }
+
+/* Họa tiết Bánh bèo: mờ, đứng yên */
+html.amoled.dark #ls-bb-decor .bb-sprite{ animation:none; opacity:.16; }

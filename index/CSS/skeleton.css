@@ -1,0 +1,45 @@
+/* ══════════════════════════════════════
+   Learnsy — Skeleton & Ripple styles (HyperOS 3: phẳng)
+   index/CSS/skeleton.css
+══════════════════════════════════════ */
+
+/* ── Skeleton: khối phẳng, nhịp thở nhẹ (không shimmer gradient) ── */
+@keyframes skeletonMove {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: .55; }
+}
+
+.skeleton {
+  border-radius: 12px;
+  background: var(--hy-fill, #F0F2F5);
+  animation: skeletonMove 1.4s ease-in-out infinite;
+}
+
+body.dark .skeleton {
+  background: var(--hy-fill, #2A2D32);
+  animation: skeletonMove 1.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton { animation: none !important; }
+}
+
+/* ── Ripple ── */
+@keyframes rippleAnim {
+  0%   { transform: scale(0);   opacity: 0.3; }
+  100% { transform: scale(4.5); opacity: 0;    }
+}
+
+.ripple-host {
+  position: relative;
+  overflow: hidden;
+}
+
+.ripple-circle {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(128, 128, 128, 0.25);
+  pointer-events: none;
+  animation: rippleAnim 0.55s ease-out both;
+  transform-origin: center;
+}

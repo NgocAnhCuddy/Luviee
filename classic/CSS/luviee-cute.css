@@ -1,0 +1,61 @@
+/* ═══ Luviee — lớp giao diện pastel dễ thương ═══
+   Animation đặt tên luv-* ; Lite Mode (injectLiteCSS) đã ép mọi animation về 0.001ms nên
+   các hiệu ứng ở đây tự tắt theo. prefers-reduced-motion cũng tắt. */
+
+@keyframes luv-bob     { 0%,100%{transform:translateY(-5px)} 50%{transform:translateY(5px)} }
+@keyframes luv-twinkle { 0%,100%{opacity:.25;transform:scale(.8)} 50%{opacity:1;transform:scale(1.1)} }
+@keyframes luv-dot     { 0%,100%{transform:translateY(0) scale(.85)} 50%{transform:translateY(-7px) scale(1.15)} }
+@keyframes luv-ring    { to{transform:rotate(360deg)} }
+@keyframes luv-heart   { 0%,100%{transform:translateY(-1.5px)} 50%{transform:translateY(1.5px)} }
+
+/* ── Hiệu ứng nhấn mềm cho thẻ banner (to, nên co ít hơn nút nhỏ) ── */
+.bb-btn-tap.luv-banner{ transition:transform .18s cubic-bezier(.34,1.56,.64,1), filter .18s, box-shadow .18s !important; }
+.bb-btn-tap.luv-banner:active{ transform:scale(.97) !important; filter:brightness(.97); }
+@media(hover:hover){ .bb-btn-tap.luv-banner:hover{ transform:translateY(-1px); filter:brightness(1.04); } }
+
+/* ── Trạng thái trống ── */
+.luv-empty{
+  display:flex;flex-direction:column;align-items:center;gap:6px;
+  padding:26px 24px;text-align:center;border-radius:24px;
+}
+.luv-empty-stage{ position:relative;width:132px;height:132px;display:flex;align-items:center;justify-content:center; }
+.luv-empty-glow{
+  position:absolute;inset:4px;border-radius:50%;
+  background:radial-gradient(circle,rgba(249,168,212,.45),transparent 68%);
+}
+.luv-empty-mascot{ position:relative;animation:luv-bob 3.2s ease-in-out infinite; }
+.luv-spark{ position:absolute;color:#f9a8d4;font-weight:900;line-height:1;animation:luv-twinkle 1.8s ease-in-out infinite; }
+.luv-spark.s1{ top:12px;right:10px;font-size:16px; }
+.luv-spark.s2{ top:26px;left:12px;font-size:11px;color:#c4b5fd;animation-delay:.5s; }
+.luv-spark.s3{ bottom:22px;left:16px;font-size:12px;animation-delay:1s; }
+.luv-empty-title{ font-size:14px;font-weight:900; }
+.luv-empty-sub{ font-size:12px; }
+
+/* ── Loading riêng ── */
+.luv-loader{ display:flex;flex-direction:column;align-items:center;gap:12px;padding:44px 24px; }
+.luv-loader-mascot{ animation:luv-bob 2.4s ease-in-out infinite; }
+.luv-dots{ display:flex;gap:8px;align-items:center; }
+.luv-dots span{ width:10px;height:10px;border-radius:50%;display:block;animation:luv-dot .9s ease-in-out infinite; }
+.luv-dots span:nth-child(1){ background:#f9a8d4; }
+.luv-dots span:nth-child(2){ background:#c4b5fd;animation-delay:.16s; }
+.luv-dots span:nth-child(3){ background:#99f6e4;animation-delay:.32s; }
+
+/* ── Avatar: vòng pastel quay chậm + tim nhún ── */
+.luv-avatar-ring{
+  position:absolute;left:50%;top:50%;border-radius:50%;pointer-events:none;
+  background:conic-gradient(#f9a8d4,#c4b5fd,#99f6e4,#fde68a,#f9a8d4);
+  -webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 2.5px),#000 calc(100% - 2px));
+          mask:radial-gradient(farthest-side,transparent calc(100% - 2.5px),#000 calc(100% - 2px));
+  animation:luv-ring 9s linear infinite;
+}
+.luv-avatar-heart{
+  position:absolute;bottom:3px;right:3px;width:18px;height:18px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;z-index:2;
+  background:linear-gradient(135deg,#fbcfe8,#f472b6);border:1.5px solid #fff;
+  color:#fff;font-size:10px;line-height:1;box-shadow:0 2px 6px rgba(244,114,182,.45);
+  animation:luv-heart 1.1s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce){
+  .luv-empty-mascot,.luv-loader-mascot,.luv-spark,.luv-dots span,.luv-avatar-ring,.luv-avatar-heart{ animation:none !important; }
+}
