@@ -29,6 +29,178 @@ import React from 'react';
 (function(){
 const {useState, useEffect, useCallback, useRef, useMemo} = React;
 
+function AESlider({label, v, set, min, max, step = 1, fmt, tSub, tMain}) {
+  return (
+    <label style={{display:'flex', alignItems:'center', gap:10, marginBottom:8}}>
+      <span style={{width:84, fontSize:11.5, fontWeight:800, color:tSub, flexShrink:0}}>{label}</span>
+      <input type="range" min={min} max={max} step={step} value={v} onChange={e => set(Number(e.target.value))} style={{flex:1, accentColor:'#1AB0F5', minWidth:0}} />
+      <span style={{width:38, textAlign:'right', fontSize:11, fontWeight:800, color:tMain}}>{fmt ? fmt(v) : v}</span>
+    </label>
+  );
+}
+function AETool({title, onClick, children, bord, tMain}) {
+  return (
+    <button type="button" title={title} aria-label={title} onClick={onClick}
+      style={{width:40, height:40, borderRadius:13, border:`1px solid ${bord}`, background:'transparent', color:tMain, display:'inline-flex', alignItems:'center', justifyContent:'center', cursor:'pointer', fontFamily:'inherit'}}>
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{children}</svg>
+    </button>
+  );
+}
+
+/* ══ AvatarEditor — cắt & tinh chỉnh ảnh đại diện trước khi upload ══
+   Kéo để di chuyển · pinch / thanh trượt để phóng · xoay 90° · lật · sáng/tương phản/bão hòa.
+   Xuất ảnh vuông JPEG (OUT×OUT) đúng phần đang nằm trong khung. */
+function AvatarEditor({file, dark, onCancel, onDone}) {
+  const VIEW = 280, OUT = 320;
+  const cvRef = useRef(null);
+  const imgRef = useRef(null);
+  const ptrs = useRef(new Map());
+  const pinch = useRef(null);
+  const [ready, setReady] = useState(false);
+  const [err, setErr] = useState('');
+  const [zoom, setZoom] = useState(1);
+  const [off, setOff] = useState({x: 0, y: 0});
+  const [rot, setRot] = useState(0);
+  const [flip, setFlip] = useState(false);
+  const [bri, setBri] = useState(100);
+  const [con, setCon] = useState(100);
+  const [sat, setSat] = useState(100);
+  const [busy, setBusy] = useState(false);
+
+  const bg = dark ? '#101F26' : '#fff';
+  const bord = dark ? 'rgba(104,204,251,0.14)' : 'rgba(26,176,245,0.2)';
+  const tMain = dark ? '#DCEAF0' : '#18313D';
+  const tSub = dark ? '#8FA9B5' : '#5C7A88';
+
+  useEffect(() => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => { imgRef.current = img; setReady(true); };
+    img.onerror = () => setErr('Không đọc được ảnh này!');
+    img.src = url;
+    return () => URL.revokeObjectURL(url);
+  }, [file]);
+
+  /* kích thước ảnh sau khi xoay + hệ số "phủ kín khung" */
+  const geo = (size) => {
+    const img = imgRef.current;
+    const sw = rot % 2 ? img.height : img.width;
+    const sh = rot % 2 ? img.width : img.height;
+    const base = size / Math.min(sw, sh);
+    return {sw, sh, base};
+  };
+  const clampOff = (o, z) => {
+    const img = imgRef.current; if (!img) return o;
+    const {sw, sh, base} = geo(VIEW);
+    const mx = Math.max(0, (sw * base * z - VIEW) / 2);
+    const my = Math.max(0, (sh * base * z - VIEW) / 2);
+    return {x: Math.min(mx, Math.max(-mx, o.x)), y: Math.min(my, Math.max(-my, o.y))};
+  };
+
+  const draw = (cv, size) => {
+    const img = imgRef.current; if (!img) return;
+    const ctx = cv.getContext('2d');
+    const k = size / VIEW;
+    const {base} = geo(size);
+    ctx.save();
+    ctx.clearRect(0, 0, size, size);
+    ctx.fillStyle = '#000'; ctx.fillRect(0, 0, size, size);
+    try { ctx.filter = `brightness(${bri}%) contrast(${con}%) saturate(${sat}%)`; } catch (e) { /* Safari cũ: bỏ qua bộ lọc */ }
+    ctx.translate(size / 2 + off.x * k, size / 2 + off.y * k);
+    ctx.rotate(rot * Math.PI / 2);
+    ctx.scale((flip ? -1 : 1) * base * zoom, base * zoom);
+    ctx.drawImage(img, -img.width / 2, -img.height / 2);
+    ctx.restore();
+  };
+
+  useEffect(() => {
+    if (!ready || !cvRef.current) return;
+    const cv = cvRef.current;
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    cv.width = VIEW * dpr; cv.height = VIEW * dpr;
+    draw(cv, VIEW * dpr);
+  }, [ready, zoom, off, rot, flip, bri, con, sat]);
+
+  useEffect(() => { setOff(o => clampOff(o, zoom)); }, [zoom, rot]);
+
+  const onDown = (e) => {
+    e.currentTarget.setPointerCapture && e.currentTarget.setPointerCapture(e.pointerId);
+    ptrs.current.set(e.pointerId, {x: e.clientX, y: e.clientY});
+    if (ptrs.current.size === 2) {
+      const [a, b] = [...ptrs.current.values()];
+      pinch.current = {d: Math.hypot(a.x - b.x, a.y - b.y), z: zoom};
+    }
+  };
+  const onMove = (e) => {
+    const prev = ptrs.current.get(e.pointerId); if (!prev) return;
+    const cur = {x: e.clientX, y: e.clientY};
+    ptrs.current.set(e.pointerId, cur);
+    if (ptrs.current.size === 2 && pinch.current) {
+      const [a, b] = [...ptrs.current.values()];
+      const d = Math.hypot(a.x - b.x, a.y - b.y);
+      setZoom(Math.min(4, Math.max(1, pinch.current.z * d / (pinch.current.d || 1))));
+    } else if (ptrs.current.size === 1) {
+      setOff(o => clampOff({x: o.x + cur.x - prev.x, y: o.y + cur.y - prev.y}, zoom));
+    }
+  };
+  const onUp = (e) => { ptrs.current.delete(e.pointerId); pinch.current = null; };
+  const onWheel = (e) => { setZoom(z => Math.min(4, Math.max(1, z - e.deltaY * 0.002))); };
+
+  const reset = () => { setZoom(1); setOff({x: 0, y: 0}); setRot(0); setFlip(false); setBri(100); setCon(100); setSat(100); };
+
+  const done = () => {
+    if (busy) return;
+    setBusy(true);
+    const cv = document.createElement('canvas');
+    cv.width = OUT; cv.height = OUT;
+    draw(cv, OUT);
+    cv.toBlob(b => { setBusy(false); if (b) onDone(b); else setErr('Không xuất được ảnh!'); }, 'image/jpeg', 0.9);
+  };
+
+  return (
+    <div style={{position:'fixed', inset:0, zIndex:9300, display:'flex', alignItems:'center', justifyContent:'center', padding:12, background:'rgba(7,13,20,0.82)', backdropFilter:'blur(12px)'}}>
+      <div role="dialog" aria-label="Cắt và chỉnh ảnh đại diện"
+        style={{background:bg, border:`1px solid ${bord}`, borderRadius:26, padding:'16px 16px 14px', width:'100%', maxWidth:360, maxHeight:'94vh', overflowY:'auto', animation:'pop .22s ease both'}}>
+        <div style={{fontSize:14.5, fontWeight:800, color:tMain, textAlign:'center', marginBottom:12}}>Cắt &amp; chỉnh ảnh</div>
+        {err ? (
+          <div style={{textAlign:'center', color:'#FF3B30', fontWeight:700, fontSize:13, padding:'30px 0'}}>{err}</div>
+        ) : (
+          <div style={{display:'flex', justifyContent:'center', marginBottom:12}}>
+            <div style={{position:'relative', width:VIEW, height:VIEW, borderRadius:22, overflow:'hidden', background:'#000', touchAction:'none', cursor:'grab', maxWidth:'100%'}}
+              onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp} onWheel={onWheel}>
+              <canvas ref={cvRef} style={{width:'100%', height:'100%', display:'block'}} />
+              {/* khung hướng dẫn: lưới 1/3 + vòng tròn thể hiện vùng hiển thị khi bo tròn */}
+              <svg width="100%" height="100%" viewBox="0 0 100 100" style={{position:'absolute', inset:0, pointerEvents:'none'}} aria-hidden="true">
+                <path d="M33.3 0V100M66.6 0V100M0 33.3H100M0 66.6H100" stroke="rgba(255,255,255,0.28)" strokeWidth=".4" />
+                <path d="M0 0H100V100H0Z M50 3a47 47 0 1 0 .001 0Z" fill="rgba(0,0,0,0.38)" fillRule="evenodd" />
+                <circle cx="50" cy="50" r="47" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth=".6" />
+              </svg>
+              {!ready && <div style={{position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize:12, fontWeight:700}}>Đang tải ảnh…</div>}
+            </div>
+          </div>
+        )}
+        <div style={{display:'flex', justifyContent:'center', gap:8, marginBottom:12}}>
+          <AETool bord={bord} tMain={tMain} title="Xoay trái 90°" onClick={() => setRot(r => (r + 3) % 4)}><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></AETool>
+          <AETool bord={bord} tMain={tMain} title="Xoay phải 90°" onClick={() => setRot(r => (r + 1) % 4)}><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/></AETool>
+          <AETool bord={bord} tMain={tMain} title="Lật ngang" onClick={() => setFlip(f => !f)}><path d="M12 3v18"/><path d="M8 7L3 12l5 5z"/><path d="M16 7l5 5-5 5z"/></AETool>
+          <AETool bord={bord} tMain={tMain} title="Đặt lại" onClick={reset}><circle cx="12" cy="12" r="9"/><path d="M9 9l6 6M15 9l-6 6"/></AETool>
+        </div>
+        <AESlider tSub={tSub} tMain={tMain} label="Phóng to" v={zoom} set={setZoom} min={1} max={4} step={0.01} fmt={v => v.toFixed(1) + '×'} />
+        <AESlider tSub={tSub} tMain={tMain} label="Độ sáng" v={bri} set={setBri} min={50} max={150} fmt={v => v - 100 > 0 ? '+' + (v - 100) : String(v - 100)} />
+        <AESlider tSub={tSub} tMain={tMain} label="Tương phản" v={con} set={setCon} min={50} max={150} fmt={v => v - 100 > 0 ? '+' + (v - 100) : String(v - 100)} />
+        <AESlider tSub={tSub} tMain={tMain} label="Màu sắc" v={sat} set={setSat} min={0} max={200} fmt={v => v - 100 > 0 ? '+' + (v - 100) : String(v - 100)} />
+        <div style={{display:'flex', gap:10, marginTop:12}}>
+          <button type="button" onClick={onCancel}
+            style={{flex:1, padding:'11px 0', borderRadius:999, border:`1px solid ${bord}`, background:'transparent', color:tSub, fontSize:13, fontWeight:800, cursor:'pointer', fontFamily:'inherit'}}>Hủy</button>
+          <button type="button" onClick={done} disabled={!ready || !!err || busy}
+            style={{flex:1.4, padding:'11px 0', borderRadius:999, border:'none', background:'#1AB0F5', color:'#fff', fontSize:13, fontWeight:800, cursor:'pointer', fontFamily:'inherit', opacity:(!ready || err) ? .5 : 1, boxShadow:'0 3px 14px rgba(26,176,245,0.28)'}}>{busy ? 'Đang lưu…' : 'Dùng ảnh này'}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
 /* ── SHA-256 helper ── */
 async function sha256(str){
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
@@ -118,6 +290,7 @@ function StudentManager({dark, C}){
   const [avatarUploading, setAvatarUploading] = useState(null);
   const avatarInputRef = useRef(null);
   const avatarCamRef = useRef(null);
+  const [avatarEdit, setAvatarEdit] = useState(null); // {file, id} đang cắt/chỉnh
   const [avatarPicker, setAvatarPicker] = useState(null); // id học sinh đang chọn nguồn ảnh
   const [avatarTargetId, setAvatarTargetId] = useState(null);
 
@@ -1035,10 +1208,22 @@ function StudentManager({dark, C}){
           onChange={async e => {
             const file = e.target.files[0];
             e.target.value = '';
-            if (file && avatarTargetId) await doUploadAvatar(file, avatarTargetId);
-            setAvatarTargetId(null);
+            if (!file || !avatarTargetId) { setAvatarTargetId(null); return; }
+            if (!file.type.startsWith('image/')) { showToast('Chỉ chấp nhận file ảnh!', 'warn'); setAvatarTargetId(null); return; }
+            if (file.size > 25 * 1024 * 1024) { showToast('Ảnh quá lớn (tối đa 25MB)!', 'warn'); setAvatarTargetId(null); return; }
+            setAvatarEdit({file, id: avatarTargetId});   // mở trình cắt/chỉnh trước khi upload
           }} />
       ))}
+
+      {avatarEdit && (
+        <AvatarEditor file={avatarEdit.file} dark={dark}
+          onCancel={() => { setAvatarEdit(null); setAvatarTargetId(null); }}
+          onDone={async (blob) => {
+            const id = avatarEdit.id;
+            setAvatarEdit(null); setAvatarTargetId(null);
+            await doUploadAvatar(new File([blob], 'avatar.jpg', {type: 'image/jpeg'}), id);
+          }} />
+      )}
 
       {/* ══ CHỌN NGUỒN ẢNH AVATAR ══ */}
       {avatarPicker && (
