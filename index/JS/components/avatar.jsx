@@ -71,12 +71,33 @@ import { createPortal } from 'react-dom';
       return r && typeof r === 'object' && 'result' in r ? r.result : r;
     }
 
-    /* Cờ "đã up avatar": chỉ có key Redis khi user thật sự upload → không dò ảnh trong storage */
+    /* Cờ "đã up avatar": key Redis avatar:user:<id>.
+       Nếu key MẤT (admin up bằng bản cũ từng DEL key, Redis bị xóa/hết hạn…) nhưng ảnh vẫn nằm trong
+       storage → dò 1 lần avatars/<id>.jpg, nếu có thì dựng lại cờ. Kết quả "không có ảnh" được nhớ 12 giờ
+       để không dò lại mỗi lần mở trang. */
     const _flagCache = new Map();
+    const _fallbackIds = new Set();
+    const NEG_MS = 12 * 3600 * 1000;
     function getAvatarFlag(uid) {
       if (!_flagCache.has(uid)) {
         _flagCache.set(uid, Promise.resolve(window.upstashCmd('GET', 'avatar:user:' + uid))
-          .then(r => { const v = upstashVal(r); return typeof v === 'string' && v ? v : null; })
+          .then(async r => {
+            const v = upstashVal(r);
+            if (typeof v === 'string' && v) { _fallbackIds.delete(uid); return v; }
+            if (r && typeof r === 'object' && r.error) return null;
+            try {
+              const neg = Number(localStorage.getItem('ls_avatar_neg_' + uid) || 0);
+              if (neg && Date.now() - neg < NEG_MS) return null;
+            } catch (e) { /* ignore */ }
+            const url = publicUrl(mainPath(uid)) + '?t=' + Date.now();
+            if (!(await probeImage(url))) {
+              try { localStorage.setItem('ls_avatar_neg_' + uid, String(Date.now())); } catch (e) { /* ignore */ }
+              return null;
+            }
+            _fallbackIds.add(uid);
+            try { await window.upstashCmd('SET', 'avatar:user:' + uid, url); _fallbackIds.delete(uid); } catch (e) { /* ignore */ }
+            return url;
+          })
           .catch(() => { _flagCache.delete(uid); return null; }));
       }
       return _flagCache.get(uid);
@@ -194,6 +215,7 @@ import { createPortal } from 'react-dom';
           if (!d || d.userId !== userId || !mountedRef.current) return;
           const cur = avatarUrlRef.current || null;
           if ((d.url || null) === cur) return;
+          if (!d.url && _fallbackIds.has(userId)) return; // ảnh vừa dò lại từ storage, cờ Redis chưa kịp ghi
           _flagCache.delete(userId);
           if (d.url) writeAvatarCache(userId, d.url); else { try { localStorage.removeItem('ls_avatar_' + userId); } catch (e) { /* ignore */ } }
           setAvatarUrl(d.url || null);
@@ -304,6 +326,7 @@ import { createPortal } from 'react-dom';
           .upload(mainPath(uid), blob, { contentType: 'image/jpeg', upsert: true });
         if (error) throw error;
         const url = publicUrl(mainPath(uid)) + '?t=' + Date.now();
+        try { localStorage.removeItem('ls_avatar_neg_' + uid); } catch (e) { /* ignore */ }
         await window.upstashCmd('SET', 'avatar:user:' + uid, url);
         await window.upstashCmd('SET', 'avatar:active:' + uid, String(slot)).catch(() => {});
         return url;
