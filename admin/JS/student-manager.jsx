@@ -117,6 +117,8 @@ function StudentManager({dark, C}){
   const [avatarUrls, setAvatarUrls] = useState({});
   const [avatarUploading, setAvatarUploading] = useState(null);
   const avatarInputRef = useRef(null);
+  const avatarCamRef = useRef(null);
+  const [avatarPicker, setAvatarPicker] = useState(null); // id học sinh đang chọn nguồn ảnh
   const [avatarTargetId, setAvatarTargetId] = useState(null);
 
   // Inline edit
@@ -749,7 +751,7 @@ function StudentManager({dark, C}){
 
               {/* Avatar */}
               <div title="Click để đổi ảnh đại diện"
-                onClick={() => { if (bulkMode) return; setAvatarTargetId(s.id); avatarInputRef.current?.click(); }}
+                onClick={() => { if (bulkMode) return; setAvatarTargetId(s.id); setAvatarPicker(s.id); }}
                 style={{width:40, height:40, borderRadius:13, flexShrink:0, background:'#1AB0F5', display:'flex', alignItems:'center', justifyContent:'center', fontSize:16, fontWeight:700, color:'#fff', cursor:bulkMode ? 'default' : 'pointer', position:'relative', overflow:'hidden', border: avatarUrls[s.id] ? '2px solid #fff' : 'none', boxShadow: avatarUrls[s.id] ? '0 2px 8px rgba(26,176,245,0.3)' : '0 2px 8px rgba(26,176,245,0.22)', transition:'box-shadow .2s'}}
                 onMouseEnter={e => { if (!bulkMode) { const o = e.currentTarget.querySelector('.av-overlay'); if (o) o.style.opacity = 1; }}}
                 onMouseLeave={e => { const o = e.currentTarget.querySelector('.av-overlay'); if (o) o.style.opacity = 0; }}>
@@ -921,7 +923,7 @@ function StudentManager({dark, C}){
           <div style={{background:card, border:`1px solid ${bord}`, borderRadius:'24px 24px 0 0', padding:'20px 20px 36px', width:'100%', maxWidth:480, boxShadow:'none', animation:'slideIn .3s ease both'}}>
             <div style={{width:36, height:4, borderRadius:99, background:bord, margin:'0 auto 18px'}} />
             <div style={{display:'flex', alignItems:'center', gap:14, marginBottom:18}}>
-              <div onClick={() => { setAvatarTargetId(selected.id); avatarInputRef.current?.click(); }}
+              <div onClick={() => { setAvatarTargetId(selected.id); setAvatarPicker(selected.id); }}
                 style={{width:56, height:56, borderRadius:17, background:'#1AB0F5', display:'flex', alignItems:'center', justifyContent:'center', fontSize:22, fontWeight:700, color:'#fff', cursor:'pointer', position:'relative', overflow:'hidden', flexShrink:0, boxShadow:'none'}}>
                 {avatarUrls[selected.id]
                   ? <img src={avatarUrls[selected.id]} alt="" style={{width:'100%', height:'100%', objectFit:'cover'}} onError={() => { localStorage.removeItem('ls_avatar_' + selected.id); setAvatarUrls(p => { const n = {...p}; delete n[selected.id]; return n; }); loadAvatar(selected.id); }} />
@@ -1025,14 +1027,47 @@ function StudentManager({dark, C}){
         </div>
       )}
 
-      {/* ══ HIDDEN FILE INPUT ══ */}
-      <input ref={avatarInputRef} type="file" accept="image/*" capture="user" style={{display:'none'}}
-        onChange={async e => {
-          const file = e.target.files[0];
-          e.target.value = '';
-          if (file && avatarTargetId) await doUploadAvatar(file, avatarTargetId);
-          setAvatarTargetId(null);
-        }} />
+      {/* ══ HIDDEN FILE INPUTS ══
+          • Thư viện/Cloud: KHÔNG có capture → trình chọn hệ thống mở bộ sưu tập, Tệp, Google Drive/Photos, OneDrive…
+          • Chụp ảnh: có capture → mở camera khi cần. */}
+      {[['lib', avatarInputRef, false], ['cam', avatarCamRef, true]].map(([k, ref, cam]) => (
+        <input key={k} ref={ref} type="file" accept="image/*" {...(cam ? {capture: 'user'} : {})} style={{display:'none'}}
+          onChange={async e => {
+            const file = e.target.files[0];
+            e.target.value = '';
+            if (file && avatarTargetId) await doUploadAvatar(file, avatarTargetId);
+            setAvatarTargetId(null);
+          }} />
+      ))}
+
+      {/* ══ CHỌN NGUỒN ẢNH AVATAR ══ */}
+      {avatarPicker && (
+        <div onClick={() => { setAvatarPicker(null); setAvatarTargetId(null); }}
+          style={{position:'fixed', inset:0, zIndex:9200, display:'flex', alignItems:'flex-end', justifyContent:'center', background:'rgba(7,13,20,0.7)', backdropFilter:'blur(10px)'}}>
+          <div onClick={e => e.stopPropagation()} role="dialog" aria-label="Chọn ảnh đại diện"
+            style={{background:card, border:`1px solid ${bord}`, borderRadius:'28px 28px 0 0', padding:'12px 16px calc(18px + env(safe-area-inset-bottom))', width:'100%', maxWidth:460, animation:'pop .22s ease both'}}>
+            <div style={{width:36, height:4, borderRadius:99, background:bord, margin:'0 auto 14px'}} />
+            <div style={{fontSize:14, fontWeight:800, color:tMain, marginBottom:12, textAlign:'center'}}>Ảnh đại diện{(() => { const st = students.find(x => x.id === avatarPicker); return st ? ' · ' + (st.display_name || st.username) : ''; })()}</div>
+            {[
+              ['Chọn từ thư viện / Cloud', 'Bộ sưu tập, Tệp, Google Drive, Google Photos…', avatarInputRef, '<rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="9" r="1.6"/><path d="M21 16l-5-5-8 8"/>'],
+              ['Chụp ảnh', 'Mở camera để chụp trực tiếp', avatarCamRef, '<path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.5"/>'],
+            ].map(([t, sub, ref, d]) => (
+              <button key={t} type="button" onClick={() => { setAvatarPicker(null); setTimeout(() => ref.current && ref.current.click(), 0); }}
+                style={{display:'flex', alignItems:'center', gap:12, width:'100%', padding:'12px 14px', marginBottom:8, borderRadius:18, border:`1px solid ${bord}`, background:inBg, color:tMain, cursor:'pointer', textAlign:'left', fontFamily:'inherit'}}>
+                <span style={{width:40, height:40, borderRadius:13, background:'#1AB0F5', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0}}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" dangerouslySetInnerHTML={{__html: d}} />
+                </span>
+                <span style={{minWidth:0}}>
+                  <span style={{display:'block', fontSize:13.5, fontWeight:800}}>{t}</span>
+                  <span style={{display:'block', fontSize:11, fontWeight:700, color:tSub, marginTop:2}}>{sub}</span>
+                </span>
+              </button>
+            ))}
+            <button type="button" onClick={() => { setAvatarPicker(null); setAvatarTargetId(null); }}
+              style={{width:'100%', padding:'11px 0', borderRadius:999, border:`1px solid ${bord}`, background:'transparent', color:tSub, fontSize:13, fontWeight:800, cursor:'pointer', fontFamily:'inherit'}}>Hủy</button>
+          </div>
+        </div>
+      )}
 
       {/* ══ CONFIRM DELETE (single) ══ */}
       {confirmDel && confirmDel !== 'bulk' && (
